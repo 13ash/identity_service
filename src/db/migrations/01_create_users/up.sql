@@ -1,8 +1,8 @@
 -- Your SQL goes here
 CREATE TABLE users (
                        id UUID NOT NULL PRIMARY KEY,
-                       email VARCHAR(100) NOT NULL,
-                       username VARCHAR(100) NOT NULL,
+                       email VARCHAR(100) NOT NULL UNIQUE,
+                       username VARCHAR(100) NOT NULL UNIQUE,
                        hash VARCHAR(122) NOT NULL, --argon hash password
                        first_name VARCHAR(100) NOT NULL,
                        last_name  VARCHAR(100) NOT NULL,
