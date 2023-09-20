@@ -5,6 +5,7 @@ pub struct Config {
     pub host_port: u16,
     pub database_url: String,
     pub rust_log: String,
+    pub local_salt: String,
 }
 
 impl Config {
@@ -17,6 +18,7 @@ impl Config {
                 .expect("HOST_PORT variable malformed."),
             database_url: env::var("DATABASE_URL").expect("DATABASE_URL variable not found."),
             rust_log: env::var("RUST_LOG").expect("RUST_LOG variable not found."),
+            local_salt: env::var("LOCAL_SALT").expect("LOCAL_SALT variable not found."),
         }
     }
 }

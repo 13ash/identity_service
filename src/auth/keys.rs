@@ -4,7 +4,7 @@ use ring::signature::{Ed25519KeyPair, KeyPair};
 #[derive(Clone)]
 pub struct AuthKeys {
     pub encoding_key: EncodingKey,
-    pub decoding_key: DecodingKey
+    pub decoding_key: DecodingKey,
 }
 
 pub async fn generate_auth_keys() -> AuthKeys {
@@ -16,6 +16,6 @@ pub async fn generate_auth_keys() -> AuthKeys {
 
     AuthKeys {
         encoding_key,
-        decoding_key
+        decoding_key,
     }
 }

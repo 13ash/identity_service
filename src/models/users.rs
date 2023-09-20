@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use diesel::{Insertable, Queryable};
-use uuid::Uuid;
 use chrono::NaiveDateTime;
+use diesel::{Insertable, Queryable};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Queryable)]
 pub struct UserQueryModel {
@@ -14,6 +14,7 @@ pub struct UserModel {
     pub email: String,
     pub username: String,
     pub hash: String,
+    pub random_salt: String,
     pub first_name: String,
     pub last_name: String,
     pub created_at: NaiveDateTime,
@@ -23,4 +24,13 @@ pub struct UserModel {
 pub struct UserAuthModel {
     pub email: String,
     pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NewUserModel {
+    pub email: String,
+    pub username: String,
+    pub password: String,
+    pub first_name: String,
+    pub last_name: String,
 }

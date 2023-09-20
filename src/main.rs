@@ -3,13 +3,14 @@ use crate::common::env::Config;
 use actix_web::{middleware, web, App, HttpServer};
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
+use crate::routes::users::user_register;
 
+mod auth;
 mod common;
 mod models;
-mod schema;
 mod routes;
+mod schema;
 mod utils;
-mod auth;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -23,7 +24,10 @@ async fn main() -> std::io::Result<()> {
         .build(manager)
         .expect("Failed to create connection pool.");
 
-    println!("Server starting at http://{}:{}", &config.host_ip, &config.host_port);
+    println!(
+        "Server starting at http://{}:{}",
+        &config.host_ip, &config.host_port
+    );
     let result = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(AppState {
@@ -32,7 +36,11 @@ async fn main() -> std::io::Result<()> {
                 db: pool.clone(),
             }))
             .wrap(middleware::Logger::default())
-            .service(web::scope("/v1").service(web::resource("/auth")))
+            .service(web::scope("/v1")
+                .service(web::resource("/register")
+                    .route(web::post().to(user_register))
+                )
+            )
     })
     .bind((Config::from_env().host_ip, Config::from_env().host_port))?
     .run()

@@ -1,7 +1,7 @@
+use crate::auth::keys::AuthKeys;
 use crate::common::env::Config;
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
-use crate::auth::keys::AuthKeys;
 
 pub type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
