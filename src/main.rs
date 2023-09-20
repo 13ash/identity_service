@@ -1,9 +1,9 @@
 use crate::common::app_state::{AppState, Pool};
 use crate::common::env::Config;
+use crate::routes::users::{user_login, user_register};
 use actix_web::{middleware, web, App, HttpServer};
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
-use crate::routes::users::user_register;
 
 mod auth;
 mod common;
@@ -36,10 +36,10 @@ async fn main() -> std::io::Result<()> {
                 db: pool.clone(),
             }))
             .wrap(middleware::Logger::default())
-            .service(web::scope("/v1")
-                .service(web::resource("/register")
-                    .route(web::post().to(user_register))
-                )
+            .service(
+                web::scope("/v1")
+                    .service(web::resource("/register").route(web::post().to(user_register)))
+                    .service(web::resource("/login").route(web::get().to(user_login))),
             )
     })
     .bind((Config::from_env().host_ip, Config::from_env().host_port))?

@@ -7,7 +7,7 @@ use uuid::Uuid;
 pub struct UserQueryModel {
     pub id: Uuid,
 }
-#[derive(Debug, Serialize, Deserialize, Insertable)]
+#[derive(Debug, Serialize, Deserialize, Insertable, Queryable)]
 #[diesel(table_name = crate::schema::users)]
 pub struct UserModel {
     pub id: Uuid,
@@ -20,7 +20,7 @@ pub struct UserModel {
     pub created_at: NaiveDateTime,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Queryable)]
 pub struct UserAuthModel {
     pub email: String,
     pub password: String,

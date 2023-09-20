@@ -47,7 +47,7 @@ pub fn hash_password(pwd: &str, local_salt: &str) -> Result<HashParams, Box<dyn 
 }
 
 pub fn verify_hashed_data(
-    stored_params: &HashParams,
+    stored_params: HashParams,
     incoming_pwd: &str,
 ) -> Result<bool, Box<dyn Error>> {
     let argon2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d)?;
