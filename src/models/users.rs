@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Queryable)]
 pub struct UserQueryModel {
-    pub id: Uuid,
+    pub email: String,
 }
 #[derive(Debug, Serialize, Deserialize, Insertable, Queryable)]
 #[diesel(table_name = crate::schema::users)]

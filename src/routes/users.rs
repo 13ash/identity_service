@@ -1,7 +1,9 @@
 use crate::common::app_state::AppState;
+use crate::models::status::StatusModel;
 use crate::models::users::{NewUserModel, UserAuthModel, UserModel};
 use crate::utils::hash::{hash_password, verify_hashed_data, HashParams};
-use actix_web::{http::StatusCode, web, web::Json, HttpResponse, Responder};
+use crate::utils::publish::{publish_login, publish_logout};
+use actix_web::{web, web::Json, HttpResponse, Responder};
 use chrono::Utc;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use std::error::Error;
@@ -41,7 +43,6 @@ pub async fn user_login(
     body: Json<UserAuthModel>,
 ) -> Result<impl Responder, Box<dyn Error>> {
     use crate::schema::users::dsl::*;
-    use crate::schema::users::email;
 
     let auth_model = body.into_inner();
     let mut conn = data.db.get()?;
@@ -61,6 +62,12 @@ pub async fn user_login(
             )?;
 
             if authenticated {
+                let status = StatusModel {
+                    id: user_in_db.id,
+                    status: String::from("ACTIVE"),
+                };
+                let json_status = Json(status);
+                publish_login(&data.amqp_client, json_status).await?;
                 Ok(HttpResponse::Ok().json("Authenticated"))
             } else {
                 Ok(HttpResponse::Unauthorized().json("Wrong Password"))
@@ -68,4 +75,28 @@ pub async fn user_login(
         }
         Err(_) => Ok(HttpResponse::NotFound().json("User not found")),
     }
+}
+
+pub async fn user_logout(
+    data: web::Data<AppState>,
+    body: Json<UserAuthModel>,
+) -> Result<impl Responder, Box<dyn Error>> {
+    use crate::schema::users::dsl::users;
+    use crate::schema::users::email;
+
+    let amqp_client = &data.amqp_client;
+    let auth_model = body.into_inner();
+    let mut conn = data.db.get()?;
+    let user_in_db: UserModel = users.filter(email.eq(&auth_model.email)).first(&mut conn)?;
+
+    let status = StatusModel {
+        id: user_in_db.id,
+        status: String::from("OFFLINE"),
+    };
+    let status_json = Json(status);
+
+    // Publish the logout status
+    publish_logout(amqp_client, status_json).await?;
+
+    Ok(HttpResponse::Ok().body("Logged out"))
 }

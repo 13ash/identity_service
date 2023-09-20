@@ -9,11 +9,13 @@ edition = "2021"
 tokio = {version = "1.28.1", features = ["full"]}
 actix-web = "4.3.1"
 actix-identity = "0.5.2"
+lapin = "2.2.1"
 argon2rs = "0.2.5"
 chrono = {version = "0.4.24", features = ["serde"]}
 dotenv = "0.15.0"
 derive_more = "0.99.17"
 serde = {version = "1.0.163", features = ["derive"]}
+serde_json = "1.0.96"
 diesel = {version = "2.0.4", features = ["extras", "postgres"]}
 jsonwebtoken = "8.3.0"
 r2d2 = "0.8.10"
