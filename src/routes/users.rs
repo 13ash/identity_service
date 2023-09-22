@@ -1,12 +1,14 @@
 use crate::common::app_state::AppState;
-use crate::models::status::StatusModel;
 use crate::models::users::{NewUserModel, UserAuthModel, UserModel};
+use crate::stubs::presence::{
+    UserIdentifier,
+};
 use crate::utils::hash::{hash_password, verify_hashed_data, HashParams};
-use crate::utils::publish::{publish_login, publish_logout};
 use actix_web::{web, web::Json, HttpResponse, Responder};
 use chrono::Utc;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use std::error::Error;
+
 use uuid::Uuid;
 
 pub async fn user_register(
@@ -35,6 +37,13 @@ pub async fn user_register(
         .values(&insert_user)
         .execute(&mut conn)?;
 
+    data.presence_client
+        .lock()
+        .await
+        .add(UserIdentifier {
+            uuid: insert_user.id.to_string(),
+        })
+        .await?;
     Ok(HttpResponse::Ok().body("User Created."))
 }
 
@@ -62,12 +71,13 @@ pub async fn user_login(
             )?;
 
             if authenticated {
-                let status = StatusModel {
-                    id: user_in_db.id,
-                    status: String::from("ACTIVE"),
-                };
-                let json_status = Json(status);
-                publish_login(&data.amqp_client, json_status).await?;
+                data.presence_client
+                    .lock()
+                    .await
+                    .login(UserIdentifier {
+                        uuid: user_in_db.id.to_string(),
+                    })
+                    .await?;
                 Ok(HttpResponse::Ok().json("Authenticated"))
             } else {
                 Ok(HttpResponse::Unauthorized().json("Wrong Password"))
@@ -84,19 +94,17 @@ pub async fn user_logout(
     use crate::schema::users::dsl::users;
     use crate::schema::users::email;
 
-    let amqp_client = &data.amqp_client;
     let auth_model = body.into_inner();
     let mut conn = data.db.get()?;
     let user_in_db: UserModel = users.filter(email.eq(&auth_model.email)).first(&mut conn)?;
 
-    let status = StatusModel {
-        id: user_in_db.id,
-        status: String::from("OFFLINE"),
-    };
-    let status_json = Json(status);
-
-    // Publish the logout status
-    publish_logout(amqp_client, status_json).await?;
+    data.presence_client
+        .lock()
+        .await
+        .logout(UserIdentifier {
+            uuid: user_in_db.id.to_string(),
+        })
+        .await?;
 
     Ok(HttpResponse::Ok().body("Logged out"))
 }

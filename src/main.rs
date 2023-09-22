@@ -1,19 +1,21 @@
 use crate::common::app_state::{AppState, Pool};
 use crate::common::env::Config;
 use crate::routes::users::{user_login, user_logout, user_register};
-use crate::utils::publish::SharedAMPQConnection;
+use crate::stubs::presence::presence_client::PresenceClient;
 use actix_web::{middleware, web, App, HttpServer};
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
-use lapin::uri::AMQPUri;
-use lapin::Connection;
-use std::str::FromStr;
+
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
 
 mod auth;
 mod common;
 mod models;
 mod routes;
 mod schema;
+mod stubs;
 mod utils;
 
 #[actix_web::main]
@@ -31,19 +33,11 @@ async fn main() -> std::io::Result<()> {
     let pool = Pool::builder()
         .build(manager)
         .expect("Failed to create connection pool.");
-
-    // initialize connection to rabbitmq client
-    println!("Starting RabbitMQ Client");
-    let amqp_uri = AMQPUri::from_str(&*format!(
-        "amqp://{}:{}",
-        &config.amqp_server_ip, &config.amqp_server_port
-    ))
-    .unwrap();
-
-    let amqp_client = Connection::connect_uri(amqp_uri, Default::default())
-        .await
-        .unwrap();
-    let shared_connection = SharedAMPQConnection::new(amqp_client);
+    let presence_client = Arc::new(Mutex::new(
+        PresenceClient::connect("http://127.0.0.1:8001")
+            .await
+            .unwrap(),
+    ));
 
     // initialize http server
     println!(
@@ -56,14 +50,14 @@ async fn main() -> std::io::Result<()> {
                 config: config.clone(),
                 keys: auth_keys.clone(),
                 db: pool.clone(),
-                amqp_client: shared_connection.clone(),
+                presence_client: Arc::clone(&presence_client),
             }))
             .wrap(middleware::Logger::default())
             .service(
                 web::scope("/v1")
                     .service(web::resource("/register").route(web::post().to(user_register)))
                     .service(web::resource("/login").route(web::get().to(user_login)))
-                    .service(web::resource("/logout").route(web::get().to(user_logout)))
+                    .service(web::resource("/logout").route(web::get().to(user_logout))),
             )
     })
     .bind((Config::from_env().host_ip, Config::from_env().host_port))?

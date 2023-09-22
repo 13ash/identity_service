@@ -1,0 +1,42 @@
+syntax = "proto3";
+package presence;
+
+enum Action {
+  ADD = 0;
+  REMOVE = 1;
+  UPDATE = 2;
+  LOGIN = 3;
+  LOGOUT = 4;
+  GET = 5;
+}
+
+enum Status {
+  OFFLINE = 0;
+  ONLINE = 1;
+  BUSY = 2;
+  AWAY = 3;
+}
+
+message UserIdentifier {
+  string uuid = 1;
+}
+
+message StatusModel {
+  string uuid = 1;
+  Status status = 2;
+}
+
+message StatusResponse {
+  string uuid = 1;
+  Status status = 2;
+  Action action = 3;
+}
+
+service Presence {
+  rpc Add(UserIdentifier) returns (StatusResponse);
+  rpc Remove(UserIdentifier) returns (StatusResponse);
+  rpc Get(UserIdentifier) returns (StatusResponse);
+  rpc Logout(UserIdentifier) returns (StatusResponse);
+  rpc Login(UserIdentifier) returns (StatusResponse);
+  rpc Update(StatusModel) returns (StatusResponse);
+}
