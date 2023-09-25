@@ -7,8 +7,6 @@ diesel::table! {
         email -> Varchar,
         #[max_length = 100]
         username -> Varchar,
-        hash -> Varchar,
-        random_salt -> Varchar,
         #[max_length = 100]
         first_name -> Varchar,
         #[max_length = 100]

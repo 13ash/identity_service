@@ -1,0 +1,40 @@
+syntax = "proto3";
+package auth;
+
+enum Action {
+  ADD = 0;
+  REMOVE = 1;
+  UPDATE = 2;
+  AUTHENTICATE = 3;
+}
+
+enum ActionResult {
+  ADDED = 0;
+  REMOVED = 1;
+  UPDATED = 2;
+  AUTHENTICATED = 3;
+  INVALID = 4;
+}
+
+message AuthRequest {
+  string uuid = 1;
+  string password = 3;
+}
+
+message UpdatePasswordRequest {
+  string uuid = 1;
+  string new_password = 5;
+}
+
+message AuthResponse {
+  ActionResult result = 1;
+}
+
+
+
+service Auth {
+  rpc Add(AuthRequest) returns (AuthResponse);
+  rpc Remove(AuthRequest) returns (AuthResponse);
+  rpc Update(UpdatePasswordRequest) returns (AuthResponse);
+  rpc Authenticate(AuthRequest) returns (AuthResponse);
+}

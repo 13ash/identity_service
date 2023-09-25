@@ -1,14 +1,12 @@
 use crate::common::app_state::AppState;
 use crate::models::users::{NewUserModel, UserAuthModel, UserModel};
-use crate::stubs::presence::{
-    UserIdentifier,
-};
-use crate::utils::hash::{hash_password, verify_hashed_data, HashParams};
+use crate::stubs::presence::UserIdentifier;
 use actix_web::{web, web::Json, HttpResponse, Responder};
 use chrono::Utc;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use std::error::Error;
-
+use tonic::Response;
+use crate::stubs::auth::{ActionResult, AuthRequest, AuthResponse};
 use uuid::Uuid;
 
 pub async fn user_register(
@@ -18,7 +16,6 @@ pub async fn user_register(
     use crate::schema::users::dsl::users;
 
     let new_user_model = body.into_inner();
-    let hash_params = hash_password(&*new_user_model.password, &*data.config.local_salt)?;
 
     let mut conn = data.db.get()?;
 
@@ -26,8 +23,6 @@ pub async fn user_register(
         id: Uuid::new_v4(),
         email: new_user_model.email,
         username: new_user_model.username,
-        hash: hash_params.hashed_data,
-        random_salt: hash_params.random_salt,
         first_name: new_user_model.first_name,
         last_name: new_user_model.last_name,
         created_at: Utc::now().naive_utc(),
@@ -44,6 +39,16 @@ pub async fn user_register(
             uuid: insert_user.id.to_string(),
         })
         .await?;
+
+    data.auth_client
+        .lock()
+        .await
+        .add(AuthRequest {
+            uuid: insert_user.id.to_string(),
+            password: new_user_model.password,
+        })
+        .await?;
+
     Ok(HttpResponse::Ok().body("User Created."))
 }
 
@@ -61,16 +66,18 @@ pub async fn user_login(
 
     match maybe_user_in_db {
         Ok(user_in_db) => {
-            let authenticated = verify_hashed_data(
-                HashParams {
-                    hashed_data: user_in_db.hash,
-                    random_salt: user_in_db.random_salt,
-                    local_salt: data.config.local_salt.clone(),
-                },
-                &auth_model.password,
-            )?;
+            let authenticate_response: Response<AuthResponse> = data
+                .auth_client
+                .lock()
+                .await
+                .authenticate(AuthRequest {
+                    uuid: user_in_db.id.to_string(),
+                    password: auth_model.password,
+                })
+                .await?;
 
-            if authenticated {
+
+            if authenticate_response.into_inner().result == ActionResult::Authenticated as i32 {
                 data.presence_client
                     .lock()
                     .await
